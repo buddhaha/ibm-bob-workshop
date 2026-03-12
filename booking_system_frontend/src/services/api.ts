@@ -38,32 +38,52 @@ api.interceptors.response.use(
 
 /**
  * Flight filter parameters
+ * Supports both main branch and feature branch filter styles
  */
 export interface FlightFilters {
-  // Phase 1: Core Filters
-  sort_by?: 'departure_time' | 'base_price' | 'duration' | 'seats_available';
-  sort_order?: 'asc' | 'desc';
+  // Basic filters from main branch
+  origin?: string;
+  destination?: string;
   departure_date_from?: string;
   departure_date_to?: string;
   min_price?: number;
   max_price?: number;
+  has_economy?: boolean;
+  has_business?: boolean;
+  has_galaxium?: boolean;
+  sort?: 'price' | 'departure_time' | 'duration';
+  order?: 'asc' | 'desc';
+  // Phase 1: Core Filters from feature branch
+  sort_by?: 'departure_time' | 'base_price' | 'duration' | 'seats_available';
+  sort_order?: 'asc' | 'desc';
   seat_class?: 'economy' | 'business' | 'galaxium';
-  // Phase 2: Additional Filters
+  // Phase 2: Additional Filters from feature branch
   departure_time_period?: 'morning' | 'afternoon' | 'evening' | 'night';
   min_duration?: number;
   max_duration?: number;
   min_seats_available?: number;
-  // Phase 3: Popular Routes
+  // Phase 3: Popular Routes from feature branch
   route_category?: 'inner_planets' | 'outer_planets' | 'moons';
 }
 
 /**
- * Get all available flights with optional filters
+ * Get all available flights with optional filtering and sorting
  */
 export const getFlights = async (filters?: FlightFilters): Promise<Flight[]> => {
-  const response = await api.get<Flight[]>('/flights', {
-    params: filters,
-  });
+  const params = new URLSearchParams();
+  
+  if (filters) {
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        params.append(key, String(value));
+      }
+    });
+  }
+  
+  const queryString = params.toString();
+  const url = queryString ? `/flights?${queryString}` : '/flights';
+  
+  const response = await api.get<Flight[]>(url);
   return response.data;
 };
 

@@ -16,79 +16,107 @@ ROUTE_CATEGORIES = {
 
 def list_flights(
     db: Session,
-    # Phase 1: Core Filters
-    sort_by: str = "departure_time",
-    sort_order: str = "asc",
+    # Basic filters from main branch
+    origin: Optional[str] = None,
+    destination: Optional[str] = None,
     departure_date_from: Optional[str] = None,
     departure_date_to: Optional[str] = None,
     min_price: Optional[int] = None,
     max_price: Optional[int] = None,
+    has_economy: Optional[bool] = None,
+    has_business: Optional[bool] = None,
+    has_galaxium: Optional[bool] = None,
+    sort: Optional[str] = None,
+    order: Optional[str] = 'asc',
+    # Phase 1: Core Filters from feature branch
+    sort_by: Optional[str] = None,
+    sort_order: Optional[str] = None,
     seat_class: Optional[str] = None,
-    # Phase 2: Additional Filters
-    departure_time_period: Optional[str] = None,  # morning, afternoon, evening, night
-    min_duration: Optional[int] = None,  # in hours
-    max_duration: Optional[int] = None,  # in hours
+    # Phase 2: Additional Filters from feature branch
+    departure_time_period: Optional[str] = None,
+    min_duration: Optional[int] = None,
+    max_duration: Optional[int] = None,
     min_seats_available: Optional[int] = None,
-    # Phase 3: Popular Routes
-    route_category: Optional[str] = None  # inner_planets, outer_planets, moons
+    # Phase 3: Popular Routes from feature branch
+    route_category: Optional[str] = None
 ) -> list[FlightOut] | ErrorResponse:
     """List flights with optional filtering and sorting.
     
-    All parameters are optional for backward compatibility.
+    Supports both main branch filters and feature branch filters for backward compatibility.
     
-    Phase 1 Filters:
-    - sort_by: Field to sort by (departure_time, base_price, duration, seats_available)
-    - sort_order: Sort direction (asc, desc)
-    - departure_date_from: Filter flights departing on or after this date (ISO format)
-    - departure_date_to: Filter flights departing on or before this date (ISO format)
-    - min_price: Minimum price (checks economy price)
-    - max_price: Maximum price (checks economy price)
-    - seat_class: Filter by seat class availability (economy, business, galaxium)
+    Args:
+        db: Database session
+        origin: Filter by origin (case-insensitive partial match)
+        destination: Filter by destination (case-insensitive partial match)
+        departure_date_from: Minimum departure date (ISO format or YYYY-MM-DD)
+        departure_date_to: Maximum departure date (ISO format or YYYY-MM-DD)
+        min_price: Minimum economy price
+        max_price: Maximum economy price
+        has_economy: Only flights with economy seats available
+        has_business: Only flights with business seats available
+        has_galaxium: Only flights with galaxium seats available
+        sort: Sort by 'price', 'departure_time', or 'duration' (main branch style)
+        order: Sort order 'asc' or 'desc' (main branch style)
+        sort_by: Field to sort by (feature branch style)
+        sort_order: Sort direction (feature branch style)
+        seat_class: Filter by seat class availability (economy, business, galaxium)
+        departure_time_period: Time of day (morning, afternoon, evening, night)
+        min_duration: Minimum flight duration in hours
+        max_duration: Maximum flight duration in hours
+        min_seats_available: Minimum total seats available
+        route_category: Route category (inner_planets, outer_planets, moons)
     
-    Phase 2 Filters:
-    - departure_time_period: Time of day (morning, afternoon, evening, night)
-    - min_duration: Minimum flight duration in hours
-    - max_duration: Maximum flight duration in hours
-    - min_seats_available: Minimum total seats available
-    
-    Phase 3 Filters:
-    - route_category: Route category (inner_planets, outer_planets, moons)
+    Returns:
+        List of FlightOut objects with computed prices for all seat classes
     """
     query = db.query(Flight)
     
-    # Phase 1: Date range filter
+    # Basic filters from main branch
+    if origin:
+        query = query.filter(Flight.origin.ilike(f'%{origin}%'))
+    
+    if destination:
+        query = query.filter(Flight.destination.ilike(f'%{destination}%'))
+    
+    # Date range filter (supports both ISO format and YYYY-MM-DD)
     if departure_date_from:
         try:
+            # Try ISO format first
             date_from = datetime.fromisoformat(departure_date_from.replace('Z', '+00:00'))
             query = query.filter(Flight.departure_time >= date_from.isoformat())
         except ValueError:
-            return ErrorResponse(
-                error="Invalid departure_date_from format",
-                error_code="INVALID_DATE_FORMAT",
-                details=f"The date '{departure_date_from}' is not in valid ISO format. Expected format: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS"
-            )
+            # Fall back to simple string comparison for YYYY-MM-DD format
+            query = query.filter(Flight.departure_time >= departure_date_from)
     
     if departure_date_to:
         try:
+            # Try ISO format first
             date_to = datetime.fromisoformat(departure_date_to.replace('Z', '+00:00'))
             # Add one day to include the entire end date
             date_to = date_to + timedelta(days=1)
             query = query.filter(Flight.departure_time < date_to.isoformat())
         except ValueError:
-            return ErrorResponse(
-                error="Invalid departure_date_to format",
-                error_code="INVALID_DATE_FORMAT",
-                details=f"The date '{departure_date_to}' is not in valid ISO format. Expected format: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS"
-            )
+            # Fall back to simple string comparison for YYYY-MM-DD format
+            query = query.filter(Flight.departure_time <= f'{departure_date_to} 23:59')
     
-    # Phase 1: Price range filter (based on economy price = base_price)
+    # Price range filter
     if min_price is not None:
         query = query.filter(Flight.base_price >= min_price)
     
     if max_price is not None:
         query = query.filter(Flight.base_price <= max_price)
     
-    # Phase 1: Seat class availability filter
+    # Seat availability filters (main branch style)
+    if has_economy:
+        query = query.filter(Flight.economy_seats_available > 0)
+    
+    if has_business:
+        query = query.filter(Flight.business_seats_available > 0)
+    
+    if has_galaxium:
+        query = query.filter(Flight.galaxium_seats_available > 0)
+    
+    # Seat class availability filter (feature branch style)
     if seat_class:
         if seat_class == 'economy':
             query = query.filter(Flight.economy_seats_available > 0)
@@ -99,7 +127,7 @@ def list_flights(
     
     # Phase 2: Departure time period filter
     if departure_time_period:
-        # Extract hour from departure_time string (format: "YYYY-MM-DDTHH:MM:SS")
+        # Extract hour from departure_time string (format: "YYYY-MM-DDTHH:MM:SS" or "YYYY-MM-DD HH:MM")
         # Morning: 6-11, Afternoon: 12-17, Evening: 18-21, Night: 22-5
         if departure_time_period == 'morning':
             query = query.filter(
@@ -157,8 +185,18 @@ def list_flights(
     for f in flights:
         # Calculate duration in hours
         try:
-            dep = datetime.fromisoformat(f.departure_time.replace('Z', '+00:00'))
-            arr = datetime.fromisoformat(f.arrival_time.replace('Z', '+00:00'))
+            # Try both ISO format and simple format
+            dep_str = f.departure_time.replace('Z', '+00:00')
+            arr_str = f.arrival_time.replace('Z', '+00:00')
+            
+            try:
+                dep = datetime.fromisoformat(dep_str)
+                arr = datetime.fromisoformat(arr_str)
+            except ValueError:
+                # Fall back to simple format
+                dep = datetime.strptime(f.departure_time, "%Y-%m-%d %H:%M")
+                arr = datetime.strptime(f.arrival_time, "%Y-%m-%d %H:%M")
+            
             duration_hours = (arr - dep).total_seconds() / 3600
         except (ValueError, AttributeError):
             duration_hours = 0
@@ -186,28 +224,35 @@ def list_flights(
         }
         result.append((FlightOut(**flight_dict), duration_hours, f))
     
-    # Phase 1: Sorting
-    valid_sort_fields = ['departure_time', 'base_price', 'duration', 'seats_available']
-    if sort_by not in valid_sort_fields:
-        sort_by = 'departure_time'
-    
-    reverse = (sort_order == 'desc')
-    
-    if sort_by == 'departure_time':
-        result.sort(key=lambda x: x[0].departure_time, reverse=reverse)
-    elif sort_by == 'base_price':
-        result.sort(key=lambda x: x[0].base_price, reverse=reverse)
-    elif sort_by == 'duration':
-        result.sort(key=lambda x: x[1], reverse=reverse)
-    elif sort_by == 'seats_available':
-        result.sort(
-            key=lambda x: (
-                x[2].economy_seats_available +
-                x[2].business_seats_available +
-                x[2].galaxium_seats_available
-            ),
-            reverse=reverse
-        )
+    # Apply sorting
+    # Prefer feature branch style (sort_by/sort_order) over main branch style (sort/order)
+    if sort_by or sort:
+        actual_sort_by = sort_by or sort
+        actual_sort_order = sort_order or order
+        
+        valid_sort_fields = ['departure_time', 'base_price', 'duration', 'seats_available', 'price']
+        if actual_sort_by not in valid_sort_fields:
+            actual_sort_by = 'departure_time'
+        
+        reverse = (actual_sort_order == 'desc')
+        
+        if actual_sort_by in ['departure_time']:
+            result.sort(key=lambda x: x[0].departure_time, reverse=reverse)
+        elif actual_sort_by in ['base_price', 'price']:
+            result.sort(key=lambda x: x[0].base_price, reverse=reverse)
+        elif actual_sort_by == 'duration':
+            result.sort(key=lambda x: x[1], reverse=reverse)
+        elif actual_sort_by == 'seats_available':
+            result.sort(
+                key=lambda x: (
+                    x[2].economy_seats_available +
+                    x[2].business_seats_available +
+                    x[2].galaxium_seats_available
+                ),
+                reverse=reverse
+            )
     
     # Return only FlightOut objects
     return [flight_out for flight_out, _, _ in result]
+
+# Made with Bob
