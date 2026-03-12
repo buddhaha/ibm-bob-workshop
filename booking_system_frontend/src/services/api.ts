@@ -38,8 +38,10 @@ api.interceptors.response.use(
 
 /**
  * Flight filter parameters
+ * Supports both main branch and feature branch filter styles
  */
 export interface FlightFilters {
+  // Basic filters from main branch
   origin?: string;
   destination?: string;
   departure_date_from?: string;
@@ -51,6 +53,17 @@ export interface FlightFilters {
   has_galaxium?: boolean;
   sort?: 'price' | 'departure_time' | 'duration';
   order?: 'asc' | 'desc';
+  // Phase 1: Core Filters from feature branch
+  sort_by?: 'departure_time' | 'base_price' | 'duration' | 'seats_available';
+  sort_order?: 'asc' | 'desc';
+  seat_class?: 'economy' | 'business' | 'galaxium';
+  // Phase 2: Additional Filters from feature branch
+  departure_time_period?: 'morning' | 'afternoon' | 'evening' | 'night';
+  min_duration?: number;
+  max_duration?: number;
+  min_seats_available?: number;
+  // Phase 3: Popular Routes from feature branch
+  route_category?: 'inner_planets' | 'outer_planets' | 'moons';
 }
 
 /**

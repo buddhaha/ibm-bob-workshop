@@ -3,7 +3,7 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastmcp import FastMCP
 from sqlalchemy.orm import Session
-from typing import Union
+from typing import Union, Optional
 from db import SessionLocal, init_db, get_db
 from seed import seed
 from services import flight, user, booking
@@ -139,33 +139,61 @@ def health_check():
 
 @app.get("/flights", response_model=list[FlightOut], tags=["Flights"])
 def get_flights(
-    origin: str | None = None,
-    destination: str | None = None,
-    departure_date_from: str | None = None,
-    departure_date_to: str | None = None,
-    min_price: int | None = None,
-    max_price: int | None = None,
-    has_economy: bool | None = None,
-    has_business: bool | None = None,
-    has_galaxium: bool | None = None,
-    sort: str | None = None,
-    order: str | None = 'asc',
+    # Basic filters from main branch
+    origin: Optional[str] = None,
+    destination: Optional[str] = None,
+    departure_date_from: Optional[str] = None,
+    departure_date_to: Optional[str] = None,
+    min_price: Optional[int] = None,
+    max_price: Optional[int] = None,
+    has_economy: Optional[bool] = None,
+    has_business: Optional[bool] = None,
+    has_galaxium: Optional[bool] = None,
+    sort: Optional[str] = None,
+    order: Optional[str] = 'asc',
+    # Phase 1: Core Filters from feature branch
+    sort_by: Optional[str] = None,
+    sort_order: Optional[str] = None,
+    seat_class: Optional[str] = None,
+    # Phase 2: Additional Filters from feature branch
+    departure_time_period: Optional[str] = None,
+    min_duration: Optional[int] = None,
+    max_duration: Optional[int] = None,
+    min_seats_available: Optional[int] = None,
+    # Phase 3: Popular Routes from feature branch
+    route_category: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    """List flights with optional filtering and sorting.
+    """List all available flights with optional filtering and sorting.
     
-    Query Parameters:
+    All query parameters are optional for backward compatibility.
+    
+    **Basic Filters:**
     - origin: Filter by origin (case-insensitive partial match)
     - destination: Filter by destination (case-insensitive partial match)
-    - departure_date_from: Minimum departure date (YYYY-MM-DD)
-    - departure_date_to: Maximum departure date (YYYY-MM-DD)
-    - min_price: Minimum economy price
-    - max_price: Maximum economy price
+    - departure_date_from: Filter flights departing on or after this date (ISO format)
+    - departure_date_to: Filter flights departing on or before this date (ISO format)
+    - min_price: Minimum price (checks economy price)
+    - max_price: Maximum price (checks economy price)
     - has_economy: Only flights with economy seats available
     - has_business: Only flights with business seats available
     - has_galaxium: Only flights with galaxium seats available
     - sort: Sort by 'price', 'departure_time', or 'duration'
     - order: Sort order 'asc' or 'desc' (default: asc)
+    
+    **Phase 1 - Core Filters:**
+    - sort_by: Field to sort by (departure_time, base_price, duration, seats_available)
+    - sort_order: Sort direction (asc, desc)
+    - seat_class: Filter by seat class availability (economy, business, galaxium)
+    
+    **Phase 2 - Additional Filters:**
+    - departure_time_period: Time of day (morning, afternoon, evening, night)
+    - min_duration: Minimum flight duration in hours
+    - max_duration: Maximum flight duration in hours
+    - min_seats_available: Minimum total seats available
+    
+    **Phase 3 - Popular Routes:**
+    - route_category: Route category (inner_planets, outer_planets, moons)
     """
     return flight.list_flights(
         db=db,
@@ -179,7 +207,15 @@ def get_flights(
         has_business=has_business,
         has_galaxium=has_galaxium,
         sort=sort,
-        order=order
+        order=order,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        seat_class=seat_class,
+        departure_time_period=departure_time_period,
+        min_duration=min_duration,
+        max_duration=max_duration,
+        min_seats_available=min_seats_available,
+        route_category=route_category
     )
 
 
