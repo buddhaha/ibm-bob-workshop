@@ -34,6 +34,20 @@ cleanup() {
 
 trap cleanup SIGINT SIGTERM
 
+# Kill any existing processes on ports 8080 and 5173
+EXISTING_BACKEND=$(lsof -ti :8080 2>/dev/null)
+if [ -n "$EXISTING_BACKEND" ]; then
+    echo "Stopping existing backend process on port 8080..."
+    echo "$EXISTING_BACKEND" | xargs kill -9 2>/dev/null
+    sleep 1
+fi
+EXISTING_FRONTEND=$(lsof -ti :5173 2>/dev/null)
+if [ -n "$EXISTING_FRONTEND" ]; then
+    echo "Stopping existing frontend process on port 5173..."
+    echo "$EXISTING_FRONTEND" | xargs kill -9 2>/dev/null
+    sleep 1
+fi
+
 # Start Backend
 echo -e "${BLUE}📡 Starting Backend Server...${NC}"
 cd booking_system_backend
