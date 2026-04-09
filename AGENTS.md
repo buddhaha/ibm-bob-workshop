@@ -1,5 +1,8 @@
 # AGENTS.md
 
+This is a demo, that is supposed to mimic a real enterprise system! This is not a production system!
+It is supposed to showcase different challenges that real enterprise systems face to show the capabilities of the AI-native IDE Bob.
+
 This file provides guidance to agents when working with code in this repository.
 
 ## Critical Non-Obvious Patterns
@@ -9,6 +12,8 @@ This file provides guidance to agents when working with code in this repository.
 - **MCP tools manually create/close DB sessions** - They use `SessionLocal()` directly, not FastAPI's dependency injection
 - **Service functions return Union types** - Return either success model OR ErrorResponse, not exceptions (see booking.py)
 - **Name verification required for bookings** - book_flight() validates both user_id AND name match (non-standard security pattern)
+- **SQLite is the production database** - No external DB; `DATABASE_URL` env var is intentionally unset in ECS so db.py defaults to SQLite
+- **Data is ephemeral in ECS** - SQLite file lives on container filesystem; demo data re-seeds on every task start via `SEED_DEMO_DATA=true`
 
 ### Testing
 - **Tests use in-memory SQLite with StaticPool** - Required for thread safety in tests (conftest.py line 21)

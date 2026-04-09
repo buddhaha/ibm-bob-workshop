@@ -44,7 +44,6 @@ confirm_teardown() {
     
     echo -e "${RED}This action will:${NC}"
     echo "  • Delete all ECS services and tasks"
-    echo "  • Delete the RDS database (all data will be lost)"
     echo "  • Delete all Docker images from ECR"
     echo "  • Delete the VPC and all networking resources"
     echo "  • Delete CloudWatch logs"
@@ -249,18 +248,6 @@ verify_cleanup() {
         print_success "Frontend ECR repository removed"
     fi
     
-    # Check RDS instances
-    print_info "Checking RDS instances..."
-    if aws rds describe-db-instances \
-        --db-instance-identifier "$PROJECT_NAME-db" \
-        --region "$AWS_REGION" \
-        --output text >/dev/null 2>&1; then
-        print_warning "RDS instance still exists (may be deleting)"
-        ((resources_remaining++))
-    else
-        print_success "RDS instance removed"
-    fi
-    
     if [ $resources_remaining -gt 0 ]; then
         print_warning "$resources_remaining resource(s) may still be deleting"
         print_info "Check AWS Console to verify all resources are removed"
@@ -274,12 +261,11 @@ estimate_cost_savings() {
     
     echo -e "${GREEN}By tearing down this infrastructure, you will save approximately:${NC}"
     echo ""
-    echo "  • RDS db.t3.micro: ~\$15/month"
     echo "  • NAT Gateway: ~\$32/month"
     echo "  • Application Load Balancer: ~\$16/month"
     echo "  • ECS Fargate: ~\$30/month"
     echo ""
-    echo -e "${GREEN}Total savings: ~\$93/month${NC}"
+    echo -e "${GREEN}Total savings: ~\$78/month${NC}"
     echo ""
 }
 
@@ -290,7 +276,6 @@ print_summary() {
     echo -e "${BLUE}What was removed:${NC}"
     echo "  ✓ ECS services and tasks"
     echo "  ✓ Docker images from ECR"
-    echo "  ✓ RDS database"
     echo "  ✓ VPC and networking resources"
     echo "  ✓ Application Load Balancer"
     echo "  ✓ CloudWatch log groups"

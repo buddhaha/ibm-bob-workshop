@@ -6,7 +6,7 @@ This guide explains how to deploy and manage the Galaxium Travels Booking System
 
 The application is deployed on AWS using:
 - **ECS Fargate** for containerized services
-- **RDS PostgreSQL** for the database
+- **SQLite** embedded in the backend container (no external database)
 - **Application Load Balancer** for routing
 - **ECR** for Docker image storage
 - **VPC** with public and private subnets
@@ -75,8 +75,8 @@ This AWS setup is optimized for a low-cost, short-lived demo environment:
 
 - ECS desired count defaults to `1` task per service to reduce cost
 - The frontend uses relative [`/api`](booking_system_frontend/src/services/api.ts:13) requests behind the ALB, so no custom domain is required
-- Backend demo seeding is disabled in ECS via `SEED_DEMO_DATA=false` to avoid reseeding on task restarts
-- You can still enable seeding for local development by setting `SEED_DEMO_DATA=true`
+- Backend uses embedded SQLite (no RDS), so demo data is re-seeded on each task start via `SEED_DEMO_DATA=true`
+- Data is ephemeral: it resets whenever the container restarts (acceptable for a demo)
 
 ### Tear Down Infrastructure
 
@@ -120,11 +120,9 @@ AWS_REGION=us-east-1 ./deploy-to-aws.sh  # Override default region
 - Internet Gateway and NAT Gateway
 - Application Load Balancer
 - ECS Cluster with Fargate tasks
-- RDS PostgreSQL database (db.t3.micro)
 - ECR repositories
 - CloudWatch log groups
 - Security groups and IAM roles
-- Secrets Manager for database credentials
 
 **Note:** This setup intentionally uses the ALB DNS name directly over HTTP for demo simplicity and lower cost.
 
@@ -270,11 +268,11 @@ curl $ALB_URL/health
 
 | Resource | Cost |
 |----------|------|
-| RDS db.t3.micro | ~$15 |
 | NAT Gateway | ~$32 |
 | Application Load Balancer | ~$16 |
-| ECS Fargate (2 tasks) | ~$30 |
-| **Total** | **~$93/month** |
+| ECS Fargate (2 tasks, when running) | ~$30 |
+| **Total (running)** | **~$78/month** |
+| **Idle (scaled to zero)** | **~$48/month** |
 
 ### Cost Optimization Tips
 
@@ -349,12 +347,10 @@ terraform apply
 
 ### Current Security Features
 
-✅ Private subnets for ECS tasks and RDS  
+✅ Private subnets for ECS tasks  
 ✅ Security groups with minimal required access  
-✅ Database credentials in Secrets Manager  
-✅ Encrypted RDS storage  
-✅ No public database access  
 ✅ IAM roles with least privilege  
+✅ No external database to secure (SQLite is embedded)  
 
 ### Production Recommendations
 
@@ -400,11 +396,6 @@ For production deployments, consider:
 - Check if ECS tasks are running
 - Verify health checks are passing
 - Check CloudWatch logs for errors
-
-**Issue: Database connection errors**
-- Verify RDS security group allows ECS
-- Check DATABASE_URL in Secrets Manager
-- Ensure RDS is in available state
 
 **Issue: Docker build fails**
 - Ensure Docker is running

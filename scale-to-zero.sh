@@ -64,7 +64,7 @@ aws ecs update-service \
 echo ""
 echo -e "${GREEN}✓ Services scaled to zero${NC}"
 echo ""
-echo -e "${BLUE}ℹ Note: RDS database is still running and incurring costs${NC}"
+echo -e "${BLUE}ℹ ALB and NAT Gateway still incur baseline costs while infrastructure exists${NC}"
 echo -e "${BLUE}ℹ To stop all costs, run: ./teardown-aws.sh${NC}"
 echo ""
 echo -e "${BLUE}ℹ To scale back up, run: ./scale-up.sh${NC}"

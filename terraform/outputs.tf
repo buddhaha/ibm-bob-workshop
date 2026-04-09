@@ -13,18 +13,6 @@ output "alb_url" {
   value       = "http://${aws_lb.main.dns_name}"
 }
 
-output "rds_endpoint" {
-  description = "RDS endpoint"
-  value       = aws_db_instance.main.endpoint
-  sensitive   = true
-}
-
-output "db_credentials_secret_arn" {
-  description = "ARN of Secrets Manager secret containing database credentials"
-  value       = aws_secretsmanager_secret.db_credentials.arn
-  sensitive   = true
-}
-
 output "ecr_backend_repository_url" {
   description = "Backend ECR repository URL"
   value       = aws_ecr_repository.backend.repository_url
