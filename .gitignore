@@ -148,3 +148,34 @@ architecture/.$galaxim-travel-infrastructure.drawio.bkp
 
 bob_documents/
 internal_monolouge/
+
+# Java / JVM / build artifacts
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+
+# Java build tool outputs
+target/
+out/
+.gradle/
+**/target/
+**/out/
+**/build/
+
+# Maven
+.mvn/timing.properties
+dependency-reduced-pom.xml
+
+# Spring Boot
+application-local.properties
+application-*.local.properties
+
+# Java IDE metadata
+.project
+.classpath
+.settings/
+.factorypath

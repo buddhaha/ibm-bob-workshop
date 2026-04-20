@@ -1,0 +1,16 @@
+/Users/max/01_CODE/galaxium-travels/booking_system_inventory_hold_service/src/main/java/com/galaxium/holdservice/repository/AuditEventRepository.java
+/Users/max/01_CODE/galaxium-travels/booking_system_inventory_hold_service/src/main/java/com/galaxium/holdservice/domain/Hold.java
+/Users/max/01_CODE/galaxium-travels/booking_system_inventory_hold_service/src/main/java/com/galaxium/holdservice/scheduler/HoldExpirationScheduler.java
+/Users/max/01_CODE/galaxium-travels/booking_system_inventory_hold_service/src/main/java/com/galaxium/holdservice/domain/Quote.java
+/Users/max/01_CODE/galaxium-travels/booking_system_inventory_hold_service/src/main/java/com/galaxium/holdservice/service/PricingService.java
+/Users/max/01_CODE/galaxium-travels/booking_system_inventory_hold_service/src/main/java/com/galaxium/holdservice/service/HoldService.java
+/Users/max/01_CODE/galaxium-travels/booking_system_inventory_hold_service/src/main/java/com/galaxium/holdservice/repository/QuoteRepository.java
+/Users/max/01_CODE/galaxium-travels/booking_system_inventory_hold_service/src/main/java/com/galaxium/holdservice/HoldServiceApplication.java
+/Users/max/01_CODE/galaxium-travels/booking_system_inventory_hold_service/src/main/java/com/galaxium/holdservice/client/PythonBackendClient.java
+/Users/max/01_CODE/galaxium-travels/booking_system_inventory_hold_service/src/main/java/com/galaxium/holdservice/api/HealthController.java
+/Users/max/01_CODE/galaxium-travels/booking_system_inventory_hold_service/src/main/java/com/galaxium/holdservice/api/QuoteController.java
+/Users/max/01_CODE/galaxium-travels/booking_system_inventory_hold_service/src/main/java/com/galaxium/holdservice/api/HoldController.java
+/Users/max/01_CODE/galaxium-travels/booking_system_inventory_hold_service/src/main/java/com/galaxium/holdservice/api/dto/CreateQuoteRequest.java
+/Users/max/01_CODE/galaxium-travels/booking_system_inventory_hold_service/src/main/java/com/galaxium/holdservice/repository/HoldRepository.java
+/Users/max/01_CODE/galaxium-travels/booking_system_inventory_hold_service/src/main/java/com/galaxium/holdservice/service/QuoteService.java
+/Users/max/01_CODE/galaxium-travels/booking_system_inventory_hold_service/src/main/java/com/galaxium/holdservice/domain/AuditEvent.java
