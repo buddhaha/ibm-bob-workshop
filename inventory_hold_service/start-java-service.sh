@@ -12,6 +12,10 @@ BLUE='\033[0;34m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+# Set JAVA_HOME to Java 17
+export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
+export PATH="$JAVA_HOME/bin:$PATH"
+
 # Check if Java is installed
 if ! command -v java &> /dev/null; then
     echo -e "${RED}❌ Java is not installed. Please install Java 17 or higher.${NC}"

@@ -1,6 +1,6 @@
 fastapi
-fastmcp
-uvicorn
+mcp
+uvicorn[standard]
 sqlalchemy
 pydantic
 python-dotenv

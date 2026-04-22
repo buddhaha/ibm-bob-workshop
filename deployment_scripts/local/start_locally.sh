@@ -67,7 +67,7 @@ cd booking_system_backend
 # Check if virtual environment exists, create if not
 if [ ! -d ".venv" ]; then
     echo "Creating Python virtual environment..."
-    python3 -m venv .venv
+    python3.11 -m venv .venv
 fi
 
 # Activate virtual environment and install dependencies
@@ -94,6 +94,10 @@ echo ""
 # Start Java Hold Service
 echo -e "${BLUE}☕ Starting Java Hold Service...${NC}"
 cd inventory_hold_service
+
+# Set JAVA_HOME to Java 17
+export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
+export PATH="$JAVA_HOME/bin:$PATH"
 
 # Check Java version
 if ! command -v java &> /dev/null; then
