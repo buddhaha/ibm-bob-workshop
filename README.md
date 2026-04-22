@@ -61,7 +61,7 @@ galaxium-travels/
 
 ### Prerequisites
 
-- **Python 3.8+** - [Download](https://www.python.org/downloads/)
+- **Python 3.10+** - [Download](https://www.python.org/downloads/)
 - **Node.js 18+** - [Download](https://nodejs.org/)
 - **npm** (comes with Node.js)
 
