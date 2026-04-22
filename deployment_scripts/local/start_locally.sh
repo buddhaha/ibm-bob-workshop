@@ -94,6 +94,19 @@ echo ""
 # Start Java Hold Service
 echo -e "${BLUE}☕ Starting Java Hold Service...${NC}"
 cd inventory_hold_service
+
+# Check Java version
+if ! command -v java &> /dev/null; then
+    echo "❌ Java is not installed. Please install Java 17+ first."
+    exit 1
+fi
+
+JAVA_VERSION=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}' | cut -d'.' -f1)
+if [ "$JAVA_VERSION" -lt 17 ]; then
+    echo "❌ Java 17+ is required. Current version: $JAVA_VERSION"
+    exit 1
+fi
+
 mvn -q spring-boot:run > java.log 2>&1 &
 JAVA_PID=$!
 
