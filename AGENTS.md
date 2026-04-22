@@ -1,35 +1,41 @@
 # AGENTS.md
 
-This is a demo, that is supposed to mimic a real enterprise system! This is not a production system!
-It is supposed to showcase different challenges that real enterprise systems face to show the capabilities of the AI-native IDE Bob.
-
 This file provides guidance to agents when working with code in this repository.
+
+## Multi-Service Architecture
+
+**Python Backend (Port 8001)**: FastAPI with dual REST + MCP protocol support. MCP server MUST be created before FastAPI app (line 22 in server.py) to properly combine lifespans.
+
+**Java Hold Service (Port 8080)**: Spring Boot service that calls Python backend's `/internal/bookings/from-hold` endpoint. Python endpoint returns HTTP 400 on booking failure so Java can detect and propagate errors.
+
+**Frontend (Port 5173)**: React + Vite. API calls to Java service go through Python proxy endpoints (`/quotes`, `/holds`) which return `{"error": "..."}` with HTTP 200 when Java service unavailable - must check manually with `assertNotProxyError()`.
+
+## Testing
+
+**Backend**: Run from `booking_system_backend/` directory:
+- `pytest` - all tests
+- `pytest tests/test_services.py` - service layer only
+- `pytest tests/test_rest.py` - REST API only
+- `pytest -k test_name` - single test
+
+**Frontend**: Run from `booking_system_frontend/`:
+- `npm run build` - production build (required before deployment)
+- `npm run lint` - ESLint check
 
 ## Critical Non-Obvious Patterns
 
-### Backend Architecture
-- **MCP server MUST be created before FastAPI app** (line 16 in server.py) - MCP lifespan must be combined with FastAPI lifespan
-- **MCP tools manually create/close DB sessions** - They use `SessionLocal()` directly, not FastAPI's dependency injection
-- **Service functions return Union types** - Return either success model OR ErrorResponse, not exceptions (see booking.py)
-- **Name verification required for bookings** - book_flight() validates both user_id AND name match (non-standard security pattern)
-- **SQLite is the production database** - No external DB; `DATABASE_URL` env var is intentionally unset in ECS so db.py defaults to SQLite
-- **Data is ephemeral in ECS** - SQLite file lives on container filesystem; demo data re-seeds on every task start via `SEED_DEMO_DATA=true`
+**Seat Class System**: Three independent seat counters per flight (economy/business/galaxium). Booking/cancellation MUST update the correct counter based on `seat_class` field. Price multipliers: economy=1.0x, business=2.5x, galaxium=5.0x base_price.
 
-### Testing
-- **Tests use in-memory SQLite with StaticPool** - Required for thread safety in tests (conftest.py line 21)
-- **Monkeypatch SessionLocal in tests** - Must patch both `db.SessionLocal` and `server.SessionLocal` (conftest.py lines 49-50)
-- **Seed function disabled in tests** - Explicitly patched to prevent data pollution (conftest.py line 53)
-- Run single test: `cd booking_system_backend && pytest tests/test_services.py::test_name -v`
+**Database Seeding**: Backend auto-seeds on startup if `SEED_DEMO_DATA=true` (default). Seed skips if users table has data to avoid wiping registered users. Database can be SQLite (local) or PostgreSQL (production) via `DATABASE_URL` env var.
 
-### Frontend
-- **API base URL from env var** - Uses `import.meta.env.VITE_API_URL` (not process.env)
-- **Error responses have specific structure** - Check `success: false` field, not HTTP status codes (api.ts line 112)
-- **Custom Tailwind colors** - Space-themed palette defined in tailwind.config.js (not standard Tailwind)
+**Authentication**: No passwords - uses name+email combination. Frontend stores user in localStorage with key `'galaxium_user'`. Backend validates both name AND email must match for user lookup.
 
-## Commands
-- **Backend tests**: `cd booking_system_backend && pytest` (must run from backend dir)
-- **Frontend dev**: `cd booking_system_frontend && npm run dev`
-- **Start both**: `./start.sh` (wrapper to scripts/local/start_locally.sh)
-- **Deploy AWS**: `./scripts/aws/deploy-to-aws.sh`
-- **Deploy IBM**: `./scripts/ibm/deploy-to-ibm.sh`
-- **Test containers**: `./scripts/local/test-containers.sh`
+**Error Handling**: Services return `Union[SuccessType, ErrorResponse]`. ErrorResponse has `success=false`, `error`, `error_code`, and optional `details`. Check with `isinstance(result, ErrorResponse)` or `isErrorResponse()` helper.
+
+**Java-Python Integration**: Java service uses `PythonBackendClient` to call Python's internal endpoint. Hold confirmation creates booking via Python backend, stores `booking_id` as `externalBookingReference` in Hold entity.
+
+**MCP Tools**: Available for AI agents via FastMCP. Each tool creates its own DB session with try/finally cleanup. Tools raise exceptions on ErrorResponse instead of returning them.
+
+**Date Handling**: Backend stores ISO format strings with 'Z' suffix. Flight filtering supports both ISO format and YYYY-MM-DD. Frontend uses date-fns for formatting.
+
+**Local Startup**: `deployment_scripts/local/start_locally.sh` requires Python 3.11, Node.js 18+, Maven, and Java 17+. Sets `JAVA_HOME` to `/opt/homebrew/opt/openjdk@17` on macOS. Kills existing processes on ports 8001, 5173, 8080 before starting.
