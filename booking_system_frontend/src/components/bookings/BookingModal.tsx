@@ -11,11 +11,14 @@ import {
   Tag,
   Timer,
   Zap,
+  LayoutGrid,
+  List,
 } from 'lucide-react';
 import { formatCurrency, formatDate, calculateDuration } from '../../utils/formatters';
 import { createQuote, createHold, confirmHold, releaseHold } from '../../services/api';
 import { storeHold, removeHold } from '../../utils/holdStorage';
 import { useUser } from '../../hooks/useUser';
+import { ClassComparison } from './ClassComparison';
 import toast from 'react-hot-toast';
 
 type Step = 'select' | 'quote' | 'hold';
@@ -35,6 +38,7 @@ export const BookingModal = ({ isOpen, onClose, flight, onSuccess }: BookingModa
   const [quote, setQuote] = useState<Quote | null>(null);
   const [hold, setHold] = useState<Hold | null>(null);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [showComparison, setShowComparison] = useState(false);
 
   // Reset state when modal opens
   useEffect(() => {
@@ -44,6 +48,7 @@ export const BookingModal = ({ isOpen, onClose, flight, onSuccess }: BookingModa
       setQuote(null);
       setHold(null);
       setTimeLeft(0);
+      setShowComparison(false);
     }
   }, [isOpen]);
 
@@ -247,48 +252,75 @@ export const BookingModal = ({ isOpen, onClose, flight, onSuccess }: BookingModa
       {flightSummary}
 
       <div>
-        <h4 className="text-sm font-semibold text-star-white mb-3">Select Seat Class</h4>
-        <div className="space-y-3">
-          {seatClasses.map((sc) => {
-            const Icon = sc.icon;
-            const isSelected = selectedClass === sc.class;
-            const isSoldOut = sc.seats === 0;
-
-            return (
-              <button
-                key={sc.class}
-                onClick={() => !isSoldOut && setSelectedClass(sc.class)}
-                disabled={isSoldOut}
-                className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
-                  isSelected
-                    ? `${sc.borderColor} ${sc.bgColor}`
-                    : 'border-white/10 bg-white/5 hover:border-white/20'
-                } ${isSoldOut ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Icon size={20} className={sc.color} />
-                    <span className="font-semibold text-star-white">{sc.name}</span>
-                    {isSelected && <Check size={18} className={sc.color} />}
-                  </div>
-                  <div className="text-right">
-                    <div className={`text-lg font-bold ${sc.color}`}>
-                      {formatCurrency(sc.price)}
-                    </div>
-                    <div className="text-xs text-star-white/60">
-                      {isSoldOut ? 'Sold Out' : `${sc.seats} left`}
-                    </div>
-                  </div>
-                </div>
-                <ul className="text-xs text-star-white/70 space-y-1">
-                  {sc.features.map((f, i) => (
-                    <li key={i}>• {f}</li>
-                  ))}
-                </ul>
-              </button>
-            );
-          })}
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-sm font-semibold text-star-white">Select Seat Class</h4>
+          <button
+            onClick={() => setShowComparison(!showComparison)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-all text-xs text-star-white/70 hover:text-star-white"
+          >
+            {showComparison ? (
+              <>
+                <List size={14} />
+                <span>List View</span>
+              </>
+            ) : (
+              <>
+                <LayoutGrid size={14} />
+                <span>Compare</span>
+              </>
+            )}
+          </button>
         </div>
+
+        {showComparison ? (
+          <ClassComparison
+            flight={flight}
+            selectedClass={selectedClass}
+            onSelectClass={setSelectedClass}
+          />
+        ) : (
+          <div className="space-y-3">
+            {seatClasses.map((sc) => {
+              const Icon = sc.icon;
+              const isSelected = selectedClass === sc.class;
+              const isSoldOut = sc.seats === 0;
+
+              return (
+                <button
+                  key={sc.class}
+                  onClick={() => !isSoldOut && setSelectedClass(sc.class)}
+                  disabled={isSoldOut}
+                  className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+                    isSelected
+                      ? `${sc.borderColor} ${sc.bgColor}`
+                      : 'border-white/10 bg-white/5 hover:border-white/20'
+                  } ${isSoldOut ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Icon size={20} className={sc.color} />
+                      <span className="font-semibold text-star-white">{sc.name}</span>
+                      {isSelected && <Check size={18} className={sc.color} />}
+                    </div>
+                    <div className="text-right">
+                      <div className={`text-lg font-bold ${sc.color}`}>
+                        {formatCurrency(sc.price)}
+                      </div>
+                      <div className="text-xs text-star-white/60">
+                        {isSoldOut ? 'Sold Out' : `${sc.seats} left`}
+                      </div>
+                    </div>
+                  </div>
+                  <ul className="text-xs text-star-white/70 space-y-1">
+                    {sc.features.map((f, i) => (
+                      <li key={i}>• {f}</li>
+                    ))}
+                  </ul>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {user && (
