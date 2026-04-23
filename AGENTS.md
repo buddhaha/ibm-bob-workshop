@@ -23,7 +23,7 @@ This file provides guidance to agents when working with code in this repository.
 
 ### Frontend
 - **API base URL from env var** - Uses `import.meta.env.VITE_API_URL` (not process.env)
-- **Error responses have specific structure** - Check `success: false` field, not HTTP status codes (api.ts line 112)
+- **Error responses have specific structure** - Check `success: false` field, not HTTP status codes (api.ts line 211)
 - **Custom Tailwind colors** - Space-themed palette defined in tailwind.config.js (not standard Tailwind)
 
 ## Commands
