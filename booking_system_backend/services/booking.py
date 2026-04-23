@@ -1,7 +1,10 @@
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timedelta
 from models import User, Flight, Booking
 from schemas import BookingOut, ErrorResponse, SeatClass
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # Price multipliers for each seat class
@@ -126,3 +129,127 @@ def get_bookings(db: Session, user_id: int) -> list[BookingOut]:
     """Retrieve all bookings for a specific user."""
     bookings = db.query(Booking).filter(Booking.user_id == user_id).all()
     return [BookingOut.model_validate(b) for b in bookings]
+
+
+
+def upgrade_booking(db: Session, booking_id: int, new_seat_class: SeatClass) -> BookingOut | ErrorResponse:
+    """
+    Upgrade or downgrade a booking to a different seat class.
+    
+    Business Rules:
+    - Cannot change within 24 hours of departure
+    - Target class must have availability
+    - Upgrades: Pay difference between classes
+    - Downgrades: Receive 80% refund of difference
+    """
+    # Get the booking
+    booking = db.query(Booking).filter(Booking.booking_id == booking_id).first()
+    if not booking:
+        return ErrorResponse(
+            error="Booking not found",
+            error_code="BOOKING_NOT_FOUND",
+            details=f"Booking with ID {booking_id} not found."
+        )
+    
+    if booking.status != "booked":
+        return ErrorResponse(
+            error="Cannot upgrade cancelled booking",
+            error_code="INVALID_BOOKING_STATUS",
+            details=f"Booking {booking_id} has status '{booking.status}' and cannot be upgraded."
+        )
+    
+    # Get the flight
+    flight = db.query(Flight).filter(Flight.flight_id == booking.flight_id).first()
+    if not flight:
+        return ErrorResponse(
+            error="Flight not found",
+            error_code="FLIGHT_NOT_FOUND",
+            details=f"Flight {booking.flight_id} not found."
+        )
+    
+    # Check if same class
+    if booking.seat_class == new_seat_class:
+        return ErrorResponse(
+            error="Already in this class",
+            error_code="SAME_CLASS",
+            details=f"Booking is already in {new_seat_class} class."
+        )
+    
+    # Check 24-hour restriction
+    try:
+        departure_time = datetime.fromisoformat(flight.departure_time)
+        time_until_departure = departure_time - datetime.utcnow()
+        if time_until_departure < timedelta(hours=24):
+            return ErrorResponse(
+                error="Too close to departure",
+                error_code="TIME_RESTRICTION",
+                details="Cannot change seat class within 24 hours of departure."
+            )
+    except ValueError as e:
+        logger.warning(f"Failed to parse departure time: {e}")
+        return ErrorResponse(
+            error="Invalid departure time",
+            error_code="INVALID_DEPARTURE_TIME",
+            details="Unable to verify 24-hour restriction due to invalid departure time format."
+        )
+    
+    # Validate new seat class
+    if new_seat_class not in SEAT_CLASS_MULTIPLIERS:
+        return ErrorResponse(
+            error="Invalid seat class",
+            error_code="INVALID_SEAT_CLASS",
+            details=f"Seat class '{new_seat_class}' is not valid."
+        )
+    
+    # Check availability in target class
+    if new_seat_class == 'economy':
+        seats_available = flight.economy_seats_available
+    elif new_seat_class == 'business':
+        seats_available = flight.business_seats_available
+    else:  # galaxium
+        seats_available = flight.galaxium_seats_available
+    
+    if seats_available < 1:
+        return ErrorResponse(
+            error=f"No {new_seat_class} seats available",
+            error_code="NO_SEATS_AVAILABLE",
+            details=f"The flight has no available seats in {new_seat_class} class."
+        )
+    
+    # Calculate price difference
+    old_price = int(flight.base_price * SEAT_CLASS_MULTIPLIERS[booking.seat_class])
+    new_price = int(flight.base_price * SEAT_CLASS_MULTIPLIERS[new_seat_class])
+    price_difference = new_price - old_price
+    
+    # Determine if upgrade or downgrade
+    is_upgrade = price_difference > 0
+    
+    # For downgrades, apply 80% refund policy
+    if not is_upgrade:
+        price_difference = int(price_difference * 0.8)
+    
+    # Update seat counters atomically
+    # Restore seat to old class
+    if booking.seat_class == 'economy':
+        flight.economy_seats_available += 1
+    elif booking.seat_class == 'business':
+        flight.business_seats_available += 1
+    elif booking.seat_class == 'galaxium':
+        flight.galaxium_seats_available += 1
+    
+    # Take seat from new class
+    if new_seat_class == 'economy':
+        flight.economy_seats_available -= 1
+    elif new_seat_class == 'business':
+        flight.business_seats_available -= 1
+    else:  # galaxium
+        flight.galaxium_seats_available -= 1
+    
+    # Update booking
+    booking.seat_class = new_seat_class
+    booking.price_paid = new_price
+    
+    db.commit()
+    db.refresh(booking)
+    
+    return BookingOut.model_validate(booking)
