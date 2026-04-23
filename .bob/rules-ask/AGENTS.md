@@ -19,4 +19,4 @@
 ## Non-Standard Patterns
 - **Name verification for bookings** - Validates both user_id AND name (unusual security pattern)
 - **Service functions return Union types** - Return success OR ErrorResponse, not exceptions
-- **Error responses use `success` field** - Don't check HTTP status codes
+- **Error responses use `success` field** - Check `success: false` field via [`isErrorResponse`](../../booking_system_frontend/src/services/api.ts:211), not HTTP status codes

@@ -7,9 +7,9 @@
 - **Seat class validation** - Must check against `SEAT_CLASS_MULTIPLIERS` dict keys before processing (see [`booking.py`](../../booking_system_backend/services/booking.py:8-12))
 
 ## Frontend Coding Patterns
-- **Error responses check `success` field** - Don't rely on HTTP status codes, check `success: false` in response body (see [`api.ts`](../../booking_system_frontend/src/services/api.ts:112))
+- **Error responses check `success` field** - Don't rely on HTTP status codes, check `success: false` in response body (see [`api.ts`](../../booking_system_frontend/src/services/api.ts:211))
 - **API URL from Vite env** - Use `import.meta.env.VITE_API_URL`, NOT `process.env` (Vite-specific pattern)
-- **Custom Tailwind colors** - Space-themed palette in [`tailwind.config.js`](../../booking_system_frontend/tailwind.config.js:9-16), not standard Tailwind
+- **Custom Tailwind colors** - Space-themed palette in [`tailwind.config.js`](../../booking_system_frontend/tailwind.config.js:9-17), not standard Tailwind
 
 ## Testing Patterns
 - **Monkeypatch both SessionLocal imports** - Must patch `db.SessionLocal` AND `server.SessionLocal` (see [`conftest.py`](../../booking_system_backend/tests/conftest.py:49-50))
